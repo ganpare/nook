@@ -1,5 +1,4 @@
 """Redditの人気投稿を収集・要約するサービス。"""
-
 import os
 import tomli
 from dataclasses import dataclass, field
@@ -12,6 +11,7 @@ from praw.models import Submission
 
 from nook.common.grok_client import Grok3Client
 from nook.common.storage import LocalStorage
+from nook.common.prompt_styles import PROMPT_STYLES, PromptStyle
 
 
 @dataclass
@@ -65,6 +65,8 @@ class RedditExplorer:
         Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
     storage_dir : str, default="data"
         ストレージディレクトリのパス。
+    prompt_style : str, default="normal"
+        プロンプトスタイル（"normal", "kawaii", "cyber"）
     """
     
     def __init__(
@@ -72,22 +74,9 @@ class RedditExplorer:
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
         user_agent: Optional[str] = None,
-        storage_dir: str = "data"
+        storage_dir: str = "data",
+        prompt_style: str = "normal"
     ):
-        """
-        RedditExplorerを初期化します。
-        
-        Parameters
-        ----------
-        client_id : str, optional
-            Reddit APIのクライアントID。指定しない場合は環境変数から取得。
-        client_secret : str, optional
-            Reddit APIのクライアントシークレット。指定しない場合は環境変数から取得。
-        user_agent : str, optional
-            Reddit APIのユーザーエージェント。指定しない場合は環境変数から取得。
-        storage_dir : str, default="data"
-            ストレージディレクトリのパス。
-        """
         self.client_id = client_id or os.environ.get("REDDIT_CLIENT_ID")
         self.client_secret = client_secret or os.environ.get("REDDIT_CLIENT_SECRET")
         self.user_agent = user_agent or os.environ.get("REDDIT_USER_AGENT")
@@ -103,6 +92,11 @@ class RedditExplorer:
         
         self.grok_client = Grok3Client()
         self.storage = LocalStorage(storage_dir)
+        
+        # プロンプトスタイルの設定
+        if prompt_style not in PROMPT_STYLES:
+            raise ValueError(f"Invalid prompt style: {prompt_style}. Available styles: {', '.join(PROMPT_STYLES.keys())}")
+        self.prompt_style = PROMPT_STYLES[prompt_style]
         
         # サブレディットの設定を読み込む
         script_dir = Path(__file__).parent
@@ -215,7 +209,13 @@ class RedditExplorer:
             return ""
         
         try:
-            prompt = f"以下の英語のテキストを自然な日本語に翻訳してください。専門用語や固有名詞は適切に翻訳し、必要に応じて英語の原語を括弧内に残してください。\n\n{text}"
+            prompt = f"""
+            私は{self.prompt_style.translation_persona}として、以下の英語テキストを翻訳します。
+            {self.prompt_style.translation_style}
+
+            テキスト:
+            {text}
+            """
             
             translated_text = self.grok_client.generate_content(
                 prompt=prompt,
@@ -286,11 +286,10 @@ class RedditExplorer:
         3. 議論の傾向（コメントから）
         """
         
-        system_instruction = """
-        あなたはReddit投稿の要約を行うアシスタントです。
-        与えられた投稿とコメントを分析し、簡潔で情報量の多い要約を作成してください。
-        技術的な内容は正確に、一般的な内容は分かりやすく要約してください。
-        回答は必ず日本語で行ってください。専門用語は適切に翻訳し、必要に応じて英語の専門用語を括弧内に残してください。
+        system_instruction = f"""
+        あなたは{self.prompt_style.summary_persona}です。
+        与えられた投稿とコメントを分析し、要約を作成してください。
+        {self.prompt_style.summary_style}
         """
         
         try:
@@ -348,4 +347,4 @@ class RedditExplorer:
                     content += "---\n\n"
         
         # 保存
-        self.storage.save_markdown(content, "reddit_explorer", today) 
+        self.storage.save_markdown(content, "reddit_explorer", today)

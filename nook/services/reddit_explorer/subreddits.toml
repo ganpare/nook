@@ -12,3 +12,11 @@ news = [
     "technology",
     "Futurology",
 ]
+
+# VTuber関連
+vtuber = [
+    "Hololive",
+    "Nijisanji",
+    "VShojo",
+    "VirtualYoutubers"
+]
