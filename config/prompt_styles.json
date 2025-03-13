@@ -1,0 +1,17 @@
+{
+  "normal": {
+    "name": "標準",
+    "description": "標準的な翻訳・要約スタイル",
+    "template": "通常の翻訳と要約を行ってください"
+  },
+  "casual": {
+    "name": "カジュアル",
+    "description": "くだけた表現での翻訳・要約",
+    "template": "カジュアルな表現で翻訳と要約を行ってください"
+  },
+  "technical": {
+    "name": "技術的",
+    "description": "技術的な表現での翻訳・要約",
+    "template": "技術的な表現で翻訳と要約を行ってください"
+  }
+}
